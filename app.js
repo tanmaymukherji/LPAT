@@ -515,6 +515,28 @@ function importExcel(event) {
       const partner = getEmptyPartner('Imported from Excel');
       partner.isDemo = false;
 
+      // Store for imported typology assessment
+      partner.importedTypology = [];
+
+      // --- Parse Partner_Typology sheet ---
+      const typologySheet = workbook.Sheets['Partner_Typology'];
+      if (typologySheet) {
+        const typologyRows = XLSX.utils.sheet_to_json(typologySheet, { header: 1 });
+        typologyRows.forEach((row, idx) => {
+          if (idx < 3) return; // skip title and header rows
+          if (!row || row.length < 4 || !row[0]) return;
+          const typeName = String(row[0]).trim();
+          const fitScore = parseInt(row[3]);
+          if (!typeName || isNaN(fitScore)) return;
+          partner.importedTypology.push({
+            type: typeName,
+            fitScore: Math.max(0, Math.min(4, fitScore)),
+            evidence: row[4] ? String(row[4]).trim() : '',
+            recommendedEngagement: row[6] ? String(row[6]).trim() : ''
+          });
+        });
+      }
+
       // --- Parse Partner_Profile sheet ---
       const profileSheet = workbook.Sheets['Partner_Profile'];
       if (profileSheet) {
@@ -973,6 +995,17 @@ function updateTypology() {
     return { pt, assigned, supporting, avgPct, threshold };
   });
 
+  // Show imported typology assessment if available
+  let importHtml = '';
+  if (p.importedTypology && p.importedTypology.length > 0) {
+    importHtml = '<div class="card" style="margin-bottom:20px"><div class="card-header"><h3>Imported Excel Typology Assessment</h3></div><div class="card-body"><div class="table-responsive"><table class="section-scores-table"><thead><tr><th>Partner Type</th><th>Fit Score (0-4)</th><th>Evidence</th><th>Recommended Engagement</th></tr></thead><tbody>';
+    p.importedTypology.forEach(t => {
+      const pctVal = Math.round((t.fitScore / 4) * 100);
+      importHtml += `<tr><td><strong>${t.type}</strong></td><td style="color:${getColorForPercent(pctVal)};font-weight:600">${t.fitScore}/4</td><td>${t.evidence || '-'}</td><td>${t.recommendedEngagement || '-'}</td></tr>`;
+    });
+    importHtml += '</tbody></table></div></div></div>';
+  }
+
   let html = '<div class="typology-grid">';
   results.forEach(r => {
     const assigned = r.assigned;
@@ -986,7 +1019,7 @@ function updateTypology() {
     </div>`;
   });
   html += '</div>';
-  document.getElementById('typologyResults').innerHTML = html;
+  document.getElementById('typologyResults').innerHTML = importHtml + html;
 }
 
 // ---- Journey ----
