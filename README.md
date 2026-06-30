@@ -1,6 +1,8 @@
 # Livelihoods & Entrepreneurship Thesis Partner Assessment Tool (LPAT)
 
-An interactive web application for assessing partner organisations against the Livelihoods & Entrepreneurship Thesis framework. Built with plain HTML, CSS, and JavaScript.
+An interactive web application for assessing partner organisations against the Livelihoods & Entrepreneurship Thesis framework. Built with plain HTML, CSS, and JavaScript — no backend required.
+
+**Live demo:** https://tanmaymukherji.github.io/LPAT/
 
 ## Features
 
@@ -10,6 +12,7 @@ An interactive web application for assessing partner organisations against the L
 - **Compare** — Select multiple partners and compare total scores, percentages, and section-wise performance in tables and grouped charts
 - **Typology** — Automatic partner classification into 10 partner types based on score patterns
 - **Journey Mapping** — Stage-based recommendations and gap-based action planning
+- **Data Persistence** — All data stored in browser localStorage with JSON export/import for backup
 
 ## Sections Assessed
 
@@ -41,17 +44,17 @@ Each question is scored 0–4:
 
 ### Classification
 
-| Range | Classification |
-|-------|---------------|
-| 0–30% | Weak alignment; mostly project-mode or activity-led |
-| 31–50% | Emerging alignment; some place or enterprise thinking |
-| 51–70% | Moderate alignment; good base for local economy work |
-| 71–85% | Strong alignment; ready for pilot or collaboration |
-| 86–100% | Very high alignment; potential anchor/ecosystem partner |
+| Range | Classification | Color |
+|-------|---------------|-------|
+| 0–30% | Weak alignment | 🔴 Red |
+| 31–50% | Emerging alignment | 🟠 Orange |
+| 51–70% | Moderate alignment | 🟡 Yellow |
+| 71–85% | Strong alignment | 🟢 Green |
+| 86–100% | Very high alignment | 🟢 Dark green |
 
 ## How to Open Locally
 
-Simply open `index.html` in any modern web browser. No server or build step required.
+Simply open `index.html` in any modern web browser:
 
 ```
 open index.html
@@ -61,57 +64,81 @@ Or serve locally with any static file server:
 
 ```
 npx serve .
+python -m http.server 8000
 ```
+
+If you see "Chart.js failed to load", check your internet connection — the chart library is loaded from CDN.
 
 ## Deploy on GitHub Pages
 
+This repository is already set up for GitHub Pages. To deploy your own fork:
+
 1. Push this repository to GitHub
 2. Go to **Settings → Pages**
-3. Under "Branch", select `main` (or your default branch) and root folder `/`
+3. Under **Branch**, select `master` (or `main`) and root folder `/`
 4. Click **Save**
-5. Your app will be available at `https://<username>.github.io/LPAT/`
+5. Your app will be available at `https://<your-username>.github.io/LPAT/`
+
+The site is built from the root of the default branch — no build step is required since this is a plain HTML/CSS/JS app.
 
 ## Data Storage
 
-All data is stored in your browser's **localStorage**. This means:
-- Data persists across page refreshes
-- Data does not sync across devices or browsers
-- Clearing browser data will remove all assessments
+All data is stored in your browser's **localStorage** (`lpat_partners` key). This means:
+- ✅ Data persists across page refreshes
+- ❌ Data does not sync across devices or browsers
+- ❌ Clearing browser data will remove all assessments
 
 ### Export / Import
 
-Use the buttons in the sidebar to:
+Use the buttons in the **sidebar** (bottom section):
 - **Export All Data** — Download all partners as a JSON file for backup
-- **Import All Data** — Restore previously exported data
-- **Reset All Data** — Clear all stored data
+- **Import All Data** — Restore previously exported data (replaces current data)
+- **Reset All Data** — Clear all stored data (reload page to re-initialize demo data)
 
-On the Partner Form tab:
+On the **Partner Form** tab:
 - **Export JSON** — Download a single partner assessment
-- **Import JSON** — Import a previously exported partner
-- **Download CSV** — Download the current partner assessment as a CSV file
+- **Import JSON** — Import a previously exported partner (appends to existing data)
+- **Download CSV** — Download the current partner assessment as a CSV file for spreadsheet analysis
 
 ## Demo Data
 
-Ten pre-filled demo partner assessments are included:
+Ten pre-filled demo partner assessments are included automatically on first load:
 PRADAN, Buzz Women, Lipok Social Foundation, JECP, TRIF, Shivganga Jhabua, VAAGDHARA, Himalay Unnati Mission, Gram Vikas, Common Ground.
 
-Demo records are marked with a "Demo" badge and can be edited or deleted.
+Demo records are marked with a "Demo / prefilled assessment" badge and can be edited or deleted. If you delete all data and refresh the page, demo data will be re-initialized.
+
+## Partner Typology
+
+The app classifies partners into 10 types based on score patterns:
+
+| Type | Key Sections | Role |
+|------|-------------|------|
+| Place Anchor | A, B, C, F, G, I | Lead place-based planning |
+| Community Mobiliser | C, G, H7, M | Community governance |
+| Production Partner | E, D, H1, H3, H4, H6 | Technical production support |
+| Market Partner | J, H5, F, E11, E12 | Market access |
+| Skill Partner | E1, E2, H3, H7, H8 | Workforce development |
+| Finance Partner | E9, E10, J, H9 | Financial access |
+| Platform Partner | K, L, H2, I5 | Knowledge systems |
+| Replication Partner | D, K, L, M | Scaling across geographies |
+| Ecology Partner | B, A, F, I1 | Natural resource management |
+| Infrastructure Partner | I5, H, K, M | Shared infrastructure |
 
 ## File Structure
 
 ```
-├── index.html       Main HTML page
-├── styles.css       Stylesheet
-├── app.js           Application logic
+├── index.html       Main HTML page (263 lines)
+├── styles.css       Stylesheet with dashboard theme (530+ lines)
+├── app.js           Application logic (920+ lines)
 ├── data/
 │   └── schema.js    Assessment schema, partner types, demo data
-└── README.md        This file
+├── README.md        This file
 ```
 
 ## Tech Stack
 
 - Plain HTML, CSS, JavaScript
-- [Chart.js](https://www.chartjs.org/) via CDN for charts
-- localStorage for data persistence
-- No backend required
+- [Chart.js](https://www.chartjs.org/) v4.4.7 via CDN for bar and radar charts
+- Browser localStorage for data persistence
+- No build tools, no bundlers, no backend
 - Works offline after first load (except Chart.js CDN)

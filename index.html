@@ -3,9 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LPAT - Livelihoods & Entrepreneurship Thesis Partner Assessment Tool</title>
+<title>LPAT — Partner Assessment Tool</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script>
+window.addEventListener('error', function(e) {
+  if (e.target.tagName === 'SCRIPT' && e.target.src.includes('chart.js')) {
+    document.getElementById('main-content').insertAdjacentHTML('afterbegin',
+      '<div style="background:#fff3cd;padding:12px 20px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#856404">Chart.js failed to load. Charts will not render. Check your internet connection.</div>');
+  }
+}, true);
+</script>
 </head>
 <body>
 <div id="app">

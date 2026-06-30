@@ -222,6 +222,11 @@ function renderChecklist() {
       row.appendChild(actionArea);
       body.appendChild(row);
     });
+    // Add column headers before questions
+    const headerRow = document.createElement('div');
+    headerRow.className = 'question-row-header';
+    headerRow.innerHTML = '<div>Question</div><div>Score</div><div>Evidence / Notes</div><div>Priority</div><div>Next Action</div>';
+    body.appendChild(headerRow);
     acc.appendChild(header);
     acc.appendChild(body);
     container.appendChild(acc);
@@ -263,7 +268,7 @@ function loadFormFromPartner(p) {
 
 function getFormData() {
   const name = document.getElementById('partnerName').value.trim();
-  if (!name) { alert('Partner name is required'); return null; }
+  if (!name) { showToast('Partner name is required', 'error'); return null; }
   const scores = {};
   ASSESSMENT_SCHEMA.sections.forEach(section => {
     section.questions.forEach(q => {
@@ -310,7 +315,7 @@ function savePartner() {
   populatePartnerSelect();
   if (currentPartnerId) document.getElementById('partnerSelect').value = currentPartnerId;
   renderCompareSelection();
-  alert('Partner saved successfully!');
+  showToast('Partner saved successfully', 'success');
 }
 
 function loadPartner(id) {
@@ -343,12 +348,18 @@ function resetForm() {
 
 function deletePartner() {
   if (!currentPartnerId) return;
-  if (!confirm('Delete this partner assessment?')) return;
+  if (!confirm('Delete this partner assessment? This cannot be undone.')) return;
   partners = partners.filter(p => p.id !== currentPartnerId);
   savePartners();
   populatePartnerSelect();
   renderCompareSelection();
   resetForm();
+}
+
+let saveTimeout = null;
+function debouncedSavePartners() {
+  if (saveTimeout) clearTimeout(saveTimeout);
+  saveTimeout = setTimeout(() => { savePartners(); }, 500);
 }
 
 function updateQuestionScore(qid, val) {
@@ -358,6 +369,7 @@ function updateQuestionScore(qid, val) {
   if (!p.scores[qid]) p.scores[qid] = { score: 0, evidence: '', priority: 'Low', nextAction: '' };
   p.scores[qid].score = val;
   p.updatedAt = new Date().toISOString();
+  debouncedSavePartners();
   updateAllSectionScores();
 }
 
@@ -368,24 +380,39 @@ function updateQuestionField(qid, field, val) {
   if (!p.scores[qid]) p.scores[qid] = { score: 0, evidence: '', priority: 'Low', nextAction: '' };
   p.scores[qid][field] = val;
   p.updatedAt = new Date().toISOString();
+  debouncedSavePartners();
 }
 
 function updateAllSectionScores() {
   if (!currentPartnerId) return;
   const p = partners.find(x => x.id === currentPartnerId);
   if (!p) return;
-  ASSESSMENT_SCHEMA.sections.forEach(section => {
+  const accordions = document.querySelectorAll('#checklistContainer .accordion');
+  ASSESSMENT_SCHEMA.sections.forEach((section, idx) => {
     const score = sumSection(p.scores, section.id);
-    const header = document.querySelector(`#checklistContainer .accordion:nth-child(${section.id === 'A' ? 1 : ASSESSMENT_SCHEMA.sections.findIndex(s => s.id === section.id) + 1}) .accordion-header span`);
+    const header = accordions[idx] ? accordions[idx].querySelector('.accordion-header span') : null;
     if (header) {
       header.innerHTML = `${section.id}. ${section.name} <span class="section-score">(${score}/${section.maxScore})</span>`;
     }
   });
 }
 
+// ---- Notification Toast ----
+function showToast(message, type) {
+  const existing = document.querySelector('.toast-notification');
+  if (existing) existing.remove();
+  const toast = document.createElement('div');
+  toast.className = 'toast-notification';
+  toast.textContent = message;
+  toast.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;color:#fff;font-size:14px;font-weight:500;z-index:9999;box-shadow:0 4px 12px rgba(0,0,0,0.2);animation:slideIn 0.3s ease;max-width:400px';
+  toast.style.background = type === 'error' ? '#dc3545' : type === 'warning' ? '#fd7e14' : '#1a7a37';
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity 0.3s'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
 // ---- Export / Import ----
 function exportPartner() {
-  if (!currentPartnerId) { alert('No partner selected'); return; }
+  if (!currentPartnerId) { showToast('No partner selected', 'warning'); return; }
   const p = partners.find(x => x.id === currentPartnerId);
   if (!p) return;
   const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
@@ -402,25 +429,32 @@ function importPartner(event) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      if (!data.scores) { alert('Invalid partner data'); return; }
+      if (!data.scores) { showToast('Invalid partner data', 'error'); return; }
       const p = getEmptyPartner(data.name || 'Imported Partner');
+      const newId = p.id;
       partners.push({
-        ...p, ...data,
-        id: p.id, isDemo: false, createdAt: p.createdAt, updatedAt: new Date().toISOString()
+        ...data,
+        id: newId, isDemo: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+        orgType: data.orgType || '', geography: data.geography || '', website: data.website || '',
+        groveLink: data.groveLink || '', contactPerson: data.contactPerson || '',
+        currentWork: data.currentWork || '', keyCommunities: data.keyCommunities || '',
+        valueChains: data.valueChains || '', partnerNotes: data.partnerNotes || '',
+        evidenceLinks: data.evidenceLinks || ''
       });
       savePartners();
       populatePartnerSelect();
       renderCompareSelection();
-      loadPartner(data.id || p.id);
-      alert('Partner imported successfully');
-    } catch (err) { alert('Invalid JSON file'); }
+      currentPartnerId = newId;
+      loadPartner(newId);
+      showToast('Partner imported successfully', 'success');
+    } catch (err) { showToast('Invalid JSON file', 'error'); }
   };
   reader.readAsText(file);
   event.target.value = '';
 }
 
 function downloadCSV() {
-  if (!currentPartnerId) { alert('No partner selected'); return; }
+  if (!currentPartnerId) { showToast('No partner selected', 'warning'); return; }
   const p = partners.find(x => x.id === currentPartnerId);
   if (!p) return;
   let csv = 'Section,Question ID,Question,Score (0-4),Evidence,Priority,Next Action\n';
@@ -452,14 +486,14 @@ function importAllData(event) {
   reader.onload = function(e) {
     try {
       const data = JSON.parse(e.target.result);
-      if (!Array.isArray(data)) { alert('Invalid data format - expected array'); return; }
+      if (!Array.isArray(data)) { showToast('Invalid data format - expected array', 'error'); return; }
       if (!confirm(`Replace all existing data with ${data.length} partners?`)) return;
       partners = data;
       savePartners();
       populatePartnerSelect();
       renderCompareSelection();
       resetForm();
-      alert('Data imported successfully');
+      showToast(`Imported ${data.length} partners successfully`, 'success');
     } catch (err) { alert('Invalid JSON file'); }
   };
   reader.readAsText(file);
@@ -477,7 +511,7 @@ function confirmResetAll() {
     const dynamicAreas = t.querySelectorAll('[id$="Results"], [id$="Summary"], [id$="Table"], [id$="ScoresTable"]');
     dynamicAreas.forEach(el => { if (el) el.innerHTML = ''; });
   });
-  alert('All data reset. Reload page to re-initialize demo data if needed.');
+  showToast('All data reset. Reload page to re-initialize demo data.', 'warning');
 }
 
 // ---- Score View ----
