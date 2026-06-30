@@ -304,7 +304,7 @@ function savePartner() {
     const idx = partners.findIndex(p => p.id === currentPartnerId);
     if (idx >= 0) {
       const existing = partners[idx];
-      partners[idx] = { ...existing, ...data, isDemo: existing.isDemo, id: existing.id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
+      partners[idx] = { ...existing, ...data, isDemo: false, id: existing.id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
     }
   } else {
     const p = getEmptyPartner(data.name);
