@@ -839,6 +839,12 @@ function updateScoreView() {
 
 // ---- Graphs ----
 function updateGraphs() {
+  // Render section key (A-M legend)
+  const keyContainer = document.getElementById('sectionKeyContainer');
+  keyContainer.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:12px">' +
+    ASSESSMENT_SCHEMA.sections.map(s => `<div><strong>${s.id}:</strong> ${s.name}</div>`).join('') +
+    '</div>';
+
   const id = document.getElementById('graphPartnerSelect').value;
   const p = partners.find(x => x.id === id);
   if (!p) {
@@ -1214,5 +1220,12 @@ document.addEventListener('DOMContentLoaded', function() {
   renderChecklist();
   renderCompareSelection();
   initCompareSectionFilter();
+  // Render section key (A-M legend) for Graphs tab
+  const keyContainer = document.getElementById('sectionKeyContainer');
+  if (keyContainer) {
+    keyContainer.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:12px">' +
+      ASSESSMENT_SCHEMA.sections.map(s => `<div><strong>${s.id}:</strong> ${s.name}</div>`).join('') +
+      '</div>';
+  }
   updateScoreView();
 });
