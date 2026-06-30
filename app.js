@@ -438,23 +438,39 @@ function importPartner(event) {
     try {
       const data = JSON.parse(e.target.result);
       if (!data.scores) { showToast('Invalid partner data', 'error'); return; }
-      const p = getEmptyPartner(data.name || 'Imported Partner');
-      const newId = p.id;
-      partners.push({
-        ...data,
-        id: newId, isDemo: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
-        orgType: data.orgType || '', geography: data.geography || '', website: data.website || '',
-        groveLink: data.groveLink || '', contactPerson: data.contactPerson || '',
-        currentWork: data.currentWork || '', keyCommunities: data.keyCommunities || '',
-        valueChains: data.valueChains || '', partnerNotes: data.partnerNotes || '',
-        evidenceLinks: data.evidenceLinks || ''
-      });
-      savePartners();
-      populatePartnerSelect();
-      renderCompareSelection();
-      currentPartnerId = newId;
-      loadPartner(newId);
-      showToast('Partner imported successfully', 'success');
+      const name = data.name || 'Imported Partner';
+      const idx = partners.findIndex(p => p.name.toLowerCase() === name.toLowerCase());
+      if (idx >= 0) {
+        const existing = partners[idx];
+        partners[idx] = {
+          ...existing,
+          ...data,
+          id: existing.id, isDemo: false, createdAt: existing.createdAt, updatedAt: new Date().toISOString()
+        };
+        savePartners();
+        populatePartnerSelect();
+        renderCompareSelection();
+        currentPartnerId = existing.id;
+        loadPartner(existing.id);
+        showToast(`Updated "${name}" from import`, 'success');
+      } else {
+        const p = getEmptyPartner(name);
+        partners.push({
+          ...data,
+          id: p.id, isDemo: false, createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          orgType: data.orgType || '', geography: data.geography || '', website: data.website || '',
+          groveLink: data.groveLink || '', contactPerson: data.contactPerson || '',
+          currentWork: data.currentWork || '', keyCommunities: data.keyCommunities || '',
+          valueChains: data.valueChains || '', partnerNotes: data.partnerNotes || '',
+          evidenceLinks: data.evidenceLinks || ''
+        });
+        savePartners();
+        populatePartnerSelect();
+        renderCompareSelection();
+        currentPartnerId = p.id;
+        loadPartner(p.id);
+        showToast('Partner imported successfully', 'success');
+      }
     } catch (err) { showToast('Invalid JSON file', 'error'); }
   };
   reader.readAsText(file);
@@ -635,13 +651,34 @@ function importExcel(event) {
         partner.name = partner.name || 'Imported Partner';
       }
 
-      partners.push(partner);
-      savePartners();
-      populatePartnerSelect();
-      renderCompareSelection();
-      currentPartnerId = partner.id;
-      loadPartner(partner.id);
-      showToast(`Imported ${importCount} questions from Excel`, 'success');
+      const existingIdx = partners.findIndex(p => p.name.toLowerCase() === partner.name.toLowerCase());
+      if (existingIdx >= 0) {
+        const existing = partners[existingIdx];
+        partners[existingIdx] = {
+          ...existing,
+          scores: partner.scores,
+          typologyAssessment: partner.typologyAssessment,
+          isDemo: false, updatedAt: new Date().toISOString()
+        };
+        // Merge profile fields from Excel
+        ['orgType', 'geography', 'website', 'currentWork', 'contactPerson', 'keyCommunities', 'valueChains'].forEach(f => {
+          if (partner[f]) partners[existingIdx][f] = partner[f];
+        });
+        savePartners();
+        populatePartnerSelect();
+        renderCompareSelection();
+        currentPartnerId = existing.id;
+        loadPartner(existing.id);
+        showToast(`Updated "${partner.name}" with ${importCount} questions from Excel`, 'success');
+      } else {
+        partners.push(partner);
+        savePartners();
+        populatePartnerSelect();
+        renderCompareSelection();
+        currentPartnerId = partner.id;
+        loadPartner(partner.id);
+        showToast(`Imported ${importCount} questions from Excel for "${partner.name}"`, 'success');
+      }
     } catch (err) { showToast('Error reading Excel file: ' + err.message, 'error'); }
   };
   reader.readAsArrayBuffer(file);

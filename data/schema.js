@@ -282,24 +282,6 @@ const PARTNER_TYPES = [
       return { relevant: ["D", "K", "L", "M"], threshold: 70 };
     },
     suggestedRole: "Lead replication across geographies, adapt models to new contexts and build scalable playbooks."
-  },
-  {
-    id: "ecology-partner",
-    name: "Ecology / NRM Anchor",
-    description: "Ecology and natural resource management orientation",
-    check: function(scores) {
-      return { relevant: ["B", "A", "F", "I1"], threshold: 70 };
-    },
-    suggestedRole: "Lead ecological assessments, natural asset mapping and ensure environmental sustainability."
-  },
-  {
-    id: "infrastructure-partner",
-    name: "Infrastructure Partner",
-    description: "Platform infrastructure and ecosystem building capacity",
-    check: function(scores) {
-      return { relevant: ["I5", "H", "K", "M"], threshold: 70 };
-    },
-    suggestedRole: "Build shared infrastructure, digital platforms, maker spaces and support systems."
   }
 ];
 
