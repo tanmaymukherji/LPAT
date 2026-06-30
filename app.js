@@ -500,6 +500,115 @@ function importAllData(event) {
   event.target.value = '';
 }
 
+// ---- XLSX Import ----
+function importExcel(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  if (typeof XLSX === 'undefined') { showToast('XLSX library not loaded. Check internet connection.', 'error'); return; }
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+
+      const partner = getEmptyPartner('Imported from Excel');
+      partner.isDemo = false;
+
+      // --- Parse Partner_Profile sheet ---
+      const profileSheet = workbook.Sheets['Partner_Profile'];
+      if (profileSheet) {
+        const profileRows = XLSX.utils.sheet_to_json(profileSheet, { header: 1 });
+        const labelsToFields = {
+          'organisation name': 'name',
+          'primary geography': 'geography',
+          'states': 'geography',
+          'domain of work': 'orgType',
+          'current livelihood': 'currentWork',
+          'primary contact': 'contactPerson',
+          'email': 'contactPerson',
+          'website': 'website',
+          'communities served': 'keyCommunities',
+          'key value chains': 'valueChains',
+          'value chain': 'valueChains'
+        };
+        profileRows.forEach(row => {
+          if (!row || !row[0]) return;
+          const label = String(row[0]).trim().toLowerCase();
+          const value = row[1] ? String(row[1]).trim() : '';
+          if (!value) return;
+          for (const [key, field] of Object.entries(labelsToFields)) {
+            if (label.includes(key)) {
+              if (field === 'geography' && partner[field]) {
+                partner[field] += '; ' + value;
+              } else if (field === 'contactPerson' && partner[field]) {
+                partner[field] += ' / ' + value;
+              } else {
+                partner[field] = value;
+              }
+              break;
+            }
+          }
+        });
+      }
+
+      // --- Parse Checklist sheet ---
+      const checklistSheet = workbook.Sheets['Checklist'];
+      if (!checklistSheet) { showToast('Excel must have a "Checklist" sheet', 'error'); return; }
+
+      const checklistRows = XLSX.utils.sheet_to_json(checklistSheet, { header: 1 });
+      let importCount = 0;
+
+      checklistRows.forEach((row, idx) => {
+        if (idx === 0) return; // skip header row
+        if (!row || row.length < 6) return;
+
+        const sectionCode = String(row[0] || '').trim();
+        const questionNum = String(row[2] || '').trim();
+        const qId = sectionCode + questionNum;
+        if (!qId || qId.length < 2) return;
+
+        // Validate question ID exists in schema
+        const validId = ASSESSMENT_SCHEMA.sections.some(s =>
+          s.questions.some(q => q.id === qId)
+        );
+        if (!validId) return;
+
+        const scoreVal = parseInt(row[5]) || 0;
+        const clampedScore = Math.max(0, Math.min(4, scoreVal));
+        const evidence = row[6] ? String(row[6]).trim() : '';
+        const nextAction = row[7] ? String(row[7]).trim() : '';
+        let priority = 'Low';
+        if (row[8]) {
+          const p = String(row[8]).trim().toLowerCase();
+          if (p.includes('high')) priority = 'High';
+          else if (p.includes('medium') || p.includes('med')) priority = 'Medium';
+        }
+
+        partner.scores[qId] = { score: clampedScore, evidence, priority, nextAction };
+        importCount++;
+      });
+
+      if (importCount === 0) { showToast('No valid question data found in Checklist sheet', 'error'); return; }
+
+      // Rename if still using default
+      if (partner.name === 'Imported from Excel' || !partner.name) {
+        partner.name = partner.name || 'Imported Partner';
+      }
+
+      partners.push(partner);
+      savePartners();
+      populatePartnerSelect();
+      renderCompareSelection();
+      currentPartnerId = partner.id;
+      loadPartner(partner.id);
+      showToast(`Imported ${importCount} questions from Excel`, 'success');
+    } catch (err) { showToast('Error reading Excel file: ' + err.message, 'error'); }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = '';
+}
+
 function confirmResetAll() {
   if (!confirm('Delete ALL partner data? This cannot be undone.')) return;
   partners = [];

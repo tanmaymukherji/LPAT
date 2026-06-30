@@ -7,11 +7,16 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script>
 window.addEventListener('error', function(e) {
-  if (e.target.tagName === 'SCRIPT' && e.target.src.includes('chart.js')) {
+  var src = e.target.tagName === 'SCRIPT' ? (e.target.src || '') : '';
+  if (src.includes('chart.js')) {
     document.getElementById('main-content').insertAdjacentHTML('afterbegin',
       '<div style="background:#fff3cd;padding:12px 20px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#856404">Chart.js failed to load. Charts will not render. Check your internet connection.</div>');
+  } else if (src.includes('sheetjs') || src.includes('xlsx')) {
+    document.querySelector('.sticky-save').insertAdjacentHTML('beforebegin',
+      '<div style="background:#fff3cd;padding:12px 20px;border-radius:8px;margin-bottom:16px;font-size:13px;color:#856404">XLSX library failed to load. Excel import will not work. Check your internet connection.</div>');
   }
 }, true);
 </script>
@@ -129,6 +134,8 @@ window.addEventListener('error', function(e) {
         <button class="btn btn-outline" onclick="document.getElementById('importInput').click()">Import JSON</button>
         <input type="file" id="importInput" accept=".json" style="display:none" onchange="importPartner(event)">
         <button class="btn btn-outline" onclick="downloadCSV()">Download CSV</button>
+        <button class="btn btn-outline" onclick="document.getElementById('importXlsxInput').click()">Import XLSX</button>
+        <input type="file" id="importXlsxInput" accept=".xlsx,.xls" style="display:none" onchange="importExcel(event)">
       </div>
     </section>
 
