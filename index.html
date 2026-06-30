@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LPAT - Livelihoods & Entrepreneurship Thesis Partner Assessment Tool</title>
+<link rel="stylesheet" href="styles.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="sidebar-header">
+      <h2>LPAT</h2>
+      <span class="sidebar-sub">Partner Assessment</span>
+    </div>
+    <nav id="nav">
+      <button class="nav-btn active" data-tab="form" onclick="switchTab('form')">
+        <span class="nav-icon">&#9998;</span> Partner Form
+      </button>
+      <button class="nav-btn" data-tab="score" onclick="switchTab('score')">
+        <span class="nav-icon">&#128202;</span> Score View
+      </button>
+      <button class="nav-btn" data-tab="graphs" onclick="switchTab('graphs')">
+        <span class="nav-icon">&#128200;</span> Graphs
+      </button>
+      <button class="nav-btn" data-tab="compare" onclick="switchTab('compare')">
+        <span class="nav-icon">&#8646;</span> Compare
+      </button>
+      <button class="nav-btn" data-tab="typology" onclick="switchTab('typology')">
+        <span class="nav-icon">&#128220;</span> Typology
+      </button>
+      <button class="nav-btn" data-tab="journey" onclick="switchTab('journey')">
+        <span class="nav-icon">&#128640;</span> Journey
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="btn btn-sm btn-outline" onclick="exportAllData()">Export All Data</button>
+      <button class="btn btn-sm btn-outline" onclick="document.getElementById('importAllInput').click()">Import All Data</button>
+      <input type="file" id="importAllInput" accept=".json" style="display:none" onchange="importAllData(event)">
+      <button class="btn btn-sm btn-outline-danger" onclick="confirmResetAll()">Reset All Data</button>
+    </div>
+  </aside>
+
+  <main id="main-content">
+
+    <!-- TAB 1: Partner Form -->
+    <section id="tab-form" class="tab-content active">
+      <div class="tab-header">
+        <h1>Partner Assessment Form</h1>
+        <div class="tab-actions">
+          <select id="partnerSelect" onchange="loadPartner(this.value)">
+            <option value="">-- New Partner --</option>
+          </select>
+          <button class="btn btn-danger btn-sm" onclick="deletePartner()" id="deletePartnerBtn" style="display:none">Delete</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h3>Partner Information</h3>
+          <span class="demo-badge" id="demoBadge" style="display:none">Demo / prefilled assessment</span>
+        </div>
+        <div class="card-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Partner Name *</label>
+              <input type="text" id="partnerName" placeholder="Enter partner name">
+            </div>
+            <div class="form-group">
+              <label>Organisation Type</label>
+              <input type="text" id="orgType" placeholder="NGO, Social Enterprise, Trust, etc.">
+            </div>
+            <div class="form-group">
+              <label>Geography / States / Districts</label>
+              <input type="text" id="geography" placeholder="e.g. Rajasthan, Dungarpur">
+            </div>
+            <div class="form-group">
+              <label>Website</label>
+              <input type="url" id="website" placeholder="https://">
+            </div>
+            <div class="form-group">
+              <label>Grove Link</label>
+              <input type="url" id="groveLink" placeholder="Grove / Notion link">
+            </div>
+            <div class="form-group">
+              <label>Contact Person</label>
+              <input type="text" id="contactPerson" placeholder="Name and designation">
+            </div>
+            <div class="form-group">
+              <label>Current Livelihood Work</label>
+              <textarea id="currentWork" rows="2" placeholder="Describe current livelihood work"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Key Communities Served</label>
+              <input type="text" id="keyCommunities" placeholder="Communities served">
+            </div>
+            <div class="form-group">
+              <label>Key Value Chains / Enterprise Areas</label>
+              <input type="text" id="valueChains" placeholder="e.g. dairy, handicrafts, food processing">
+            </div>
+            <div class="form-group">
+              <label>Notes</label>
+              <textarea id="partnerNotes" rows="2" placeholder="Additional notes"></textarea>
+            </div>
+            <div class="form-group">
+              <label>Evidence Links</label>
+              <textarea id="evidenceLinks" rows="2" placeholder="Links to reports, docs, etc."></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="checklistContainer"></div>
+
+      <div class="sticky-save">
+        <button class="btn btn-primary btn-lg" onclick="savePartner()">Save Partner</button>
+        <button class="btn btn-secondary" onclick="resetForm()">Reset Form</button>
+        <button class="btn btn-outline" onclick="exportPartner()">Export JSON</button>
+        <button class="btn btn-outline" onclick="document.getElementById('importInput').click()">Import JSON</button>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importPartner(event)">
+        <button class="btn btn-outline" onclick="downloadCSV()">Download CSV</button>
+      </div>
+    </section>
+
+    <!-- TAB 2: Score View -->
+    <section id="tab-score" class="tab-content">
+      <div class="tab-header">
+        <h1>Partner Score View</h1>
+        <select id="scorePartnerSelect" onchange="updateScoreView()">
+          <option value="">-- Select Partner --</option>
+        </select>
+      </div>
+
+      <div id="scoreOverview" class="score-overview">
+        <div class="score-summary-cards" id="scoreSummaryCards"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Section-wise Scores</h3></div>
+        <div class="card-body">
+          <div id="sectionScoresTable"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Key Gaps & Recommendations</h3></div>
+        <div class="card-body">
+          <div id="gapsRecommendations"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Strongest & Weakest Sections</h3></div>
+        <div class="card-body">
+          <div id="strongestWeakest"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Graphs -->
+    <section id="tab-graphs" class="tab-content">
+      <div class="tab-header">
+        <h1>Partner Graphs</h1>
+        <select id="graphPartnerSelect" onchange="updateGraphs()">
+          <option value="">-- Select Partner --</option>
+        </select>
+      </div>
+
+      <div class="graph-grid">
+        <div class="card">
+          <div class="card-header"><h3>Section-wise Percentage Scores</h3></div>
+          <div class="card-body chart-container">
+            <canvas id="barChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>Radar / Spider Chart</h3></div>
+          <div class="card-body chart-container">
+            <canvas id="radarChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Score Card Summary</h3></div>
+        <div class="card-body" id="scoreCardSummary"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: Compare -->
+    <section id="tab-compare" class="tab-content">
+      <div class="tab-header">
+        <h1>Compare Partners</h1>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Select Partners to Compare</h3></div>
+        <div class="card-body">
+          <div id="compareSelection"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h3>Comparison Table</h3></div>
+        <div class="card-body">
+          <div id="compareTable"></div>
+        </div>
+      </div>
+
+      <div class="graph-grid">
+        <div class="card">
+          <div class="card-header"><h3>Total Percentage Comparison</h3></div>
+          <div class="card-body chart-container">
+            <canvas id="compareBarChart"></canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <h3>Section-wise Comparison</h3>
+            <select id="compareSectionFilter" onchange="updateComparison()">
+              <option value="ALL">All Sections</option>
+            </select>
+          </div>
+          <div class="card-body chart-container">
+            <canvas id="compareGroupedBarChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 5: Typology -->
+    <section id="tab-typology" class="tab-content">
+      <div class="tab-header">
+        <h1>Partner Typology</h1>
+        <select id="typologyPartnerSelect" onchange="updateTypology()">
+          <option value="">-- Select Partner --</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Classification by Partner Type</h3></div>
+        <div class="card-body" id="typologyResults"></div>
+      </div>
+    </section>
+
+    <!-- TAB 6: Journey -->
+    <section id="tab-journey" class="tab-content">
+      <div class="tab-header">
+        <h1>Journey Mapping</h1>
+        <select id="journeyPartnerSelect" onchange="updateJourney()">
+          <option value="">-- Select Partner --</option>
+        </select>
+      </div>
+      <div id="journeyResults"></div>
+    </section>
+
+  </main>
+</div>
+
+<script src="data/schema.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
