@@ -494,7 +494,7 @@ function importAllData(event) {
       renderCompareSelection();
       resetForm();
       showToast(`Imported ${data.length} partners successfully`, 'success');
-    } catch (err) { alert('Invalid JSON file'); }
+    } catch (err) { showToast('Invalid JSON file', 'error'); }
   };
   reader.readAsText(file);
   event.target.value = '';
