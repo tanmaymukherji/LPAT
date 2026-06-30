@@ -111,6 +111,22 @@ body {
   gap: 6px;
 }
 
+.sidebar-footer .btn-outline {
+  border-color: rgba(255,255,255,0.3);
+  color: var(--sidebar-text);
+}
+.sidebar-footer .btn-outline:hover {
+  background: rgba(255,255,255,0.15);
+  border-color: rgba(255,255,255,0.5);
+}
+.sidebar-footer .btn-outline-danger {
+  border-color: rgba(220,53,69,0.5);
+  color: #f08080;
+}
+.sidebar-footer .btn-outline-danger:hover {
+  background: rgba(220,53,69,0.15);
+}
+
 #main-content {
   flex: 1;
   padding: 24px;

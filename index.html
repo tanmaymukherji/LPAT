@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LPAT — Partner Assessment Tool</title>
+<title>LPAT — Livelihood Partner Alignment Tool</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <link rel="stylesheet" href="styles.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
@@ -26,7 +26,7 @@ window.addEventListener('error', function(e) {
   <aside id="sidebar">
     <div class="sidebar-header">
       <h2>LPAT</h2>
-      <span class="sidebar-sub">Partner Assessment</span>
+      <span class="sidebar-sub">Partner Alignment</span>
     </div>
     <nav id="nav">
       <button class="nav-btn active" data-tab="form" onclick="switchTab('form')">
@@ -61,7 +61,7 @@ window.addEventListener('error', function(e) {
     <!-- TAB 1: Partner Form -->
     <section id="tab-form" class="tab-content active">
       <div class="tab-header">
-        <h1>Partner Assessment Form</h1>
+        <h1>Partner Alignment Form</h1>
         <div class="tab-actions">
           <select id="partnerSelect" onchange="loadPartner(this.value)">
             <option value="">-- New Partner --</option>
