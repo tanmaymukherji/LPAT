@@ -5,6 +5,7 @@ let barChartInstance = null;
 let radarChartInstance = null;
 let compareBarChartInstance = null;
 let compareGroupedBarInstance = null;
+let compareRadarChartInstance = null;
 
 const STORAGE_KEY = 'lpat_partners';
 
@@ -944,6 +945,14 @@ function recheckCompareBoxes(ids) {
 }
 
 function updateComparison() {
+  // Render section key (A-M legend)
+  const keyContainer = document.getElementById('compareSectionKeyContainer');
+  if (keyContainer) {
+    keyContainer.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:12px">' +
+      ASSESSMENT_SCHEMA.sections.map(s => `<div><strong>${s.id}:</strong> ${s.name}</div>`).join('') +
+      '</div>';
+  }
+
   const prevIds = getSelectedCompareIds();
   renderCompareSelection();
   recheckCompareBoxes(prevIds);
@@ -955,6 +964,7 @@ function updateComparison() {
     document.getElementById('compareTable').innerHTML = '<p class="text-muted">Select partners to compare</p>';
     if (compareBarChartInstance) { compareBarChartInstance.destroy(); compareBarChartInstance = null; }
     if (compareGroupedBarInstance) { compareGroupedBarInstance.destroy(); compareGroupedBarInstance = null; }
+    if (compareRadarChartInstance) { compareRadarChartInstance.destroy(); compareRadarChartInstance = null; }
     return;
   }
 
@@ -1067,6 +1077,34 @@ function updateComparison() {
       }
     }
   });
+
+  // Radar comparison chart (only when ALL sections selected)
+  if (compareRadarChartInstance) compareRadarChartInstance.destroy();
+  if (filterSection === 'ALL' && selected.length > 0) {
+    const radarCtx = document.getElementById('compareRadarChart').getContext('2d');
+    const radarData = {
+      labels: ASSESSMENT_SCHEMA.sections.map(s => s.id),
+      datasets: selected.map(p => ({
+        label: p.name,
+        data: ASSESSMENT_SCHEMA.sections.map(s => percentFor(p.scores, s.id)),
+        backgroundColor: 'rgba(0,0,0,0)',
+        borderColor: '#' + Math.floor(Math.abs(hashStr(p.id + '-border')) * 16777215).toString(16).padStart(6, '0'),
+        pointBackgroundColor: '#' + Math.floor(Math.abs(hashStr(p.id + '-point')) * 16777215).toString(16).padStart(6, '0'),
+        pointRadius: 4,
+        borderWidth: 2
+      }))
+    };
+    compareRadarChartInstance = new Chart(radarCtx, {
+      type: 'radar',
+      data: radarData,
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: { r: { beginAtZero: true, max: 100, ticks: { stepSize: 20 } } },
+        plugins: { tooltip: { callbacks: { label: ctx => ctx.dataset.label + ': ' + ctx.raw + '%' } } }
+      }
+    });
+  }
 }
 
 function hashStr(str) {
@@ -1220,12 +1258,14 @@ document.addEventListener('DOMContentLoaded', function() {
   renderChecklist();
   renderCompareSelection();
   initCompareSectionFilter();
-  // Render section key (A-M legend) for Graphs tab
-  const keyContainer = document.getElementById('sectionKeyContainer');
-  if (keyContainer) {
-    keyContainer.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:12px">' +
-      ASSESSMENT_SCHEMA.sections.map(s => `<div><strong>${s.id}:</strong> ${s.name}</div>`).join('') +
-      '</div>';
-  }
+  // Render section key (A-M legend) for Graphs and Compare tabs
+  ['sectionKeyContainer', 'compareSectionKeyContainer'].forEach(cid => {
+    const c = document.getElementById(cid);
+    if (c) {
+      c.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 16px;font-size:12px">' +
+        ASSESSMENT_SCHEMA.sections.map(s => `<div><strong>${s.id}:</strong> ${s.name}</div>`).join('') +
+        '</div>';
+    }
+  });
   updateScoreView();
 });
