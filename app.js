@@ -132,6 +132,13 @@ function initDemoData() {
     const p = getEmptyPartner(dp.name);
     p.isDemo = true;
     p.scores = generateDemoScores(dp.sections);
+    // Assign demo typology assessment based on total score tiers
+    p.typologyAssessment = PARTNER_TYPES.map((pt, i) => {
+      const baseScore = dp.totalScore >= 385 ? 4 : dp.totalScore >= 375 ? 3 : 2;
+      const variance = (i % 3 === 0) ? 0 : (i % 3 === 1) ? -1 : 1;
+      const fs = Math.max(0, Math.min(4, baseScore + variance));
+      return { typeName: pt.name, fitScore: fs, evidence: '', recommendedEngagement: '' };
+    });
     partners.push(p);
   });
   savePartners();
@@ -148,11 +155,12 @@ function switchTab(tabId) {
   if (tabId === 'compare') updateComparison();
   if (tabId === 'typology') updateTypology();
   if (tabId === 'journey') updateJourney();
+  if (tabId === 'typology-form') loadTypologyForm(document.getElementById('typologyFormPartnerSelect').value);
 }
 
 // ---- Partner Form ----
 function populatePartnerSelect() {
-  const selects = ['partnerSelect', 'scorePartnerSelect', 'graphPartnerSelect', 'typologyPartnerSelect', 'journeyPartnerSelect'];
+  const selects = ['partnerSelect', 'scorePartnerSelect', 'graphPartnerSelect', 'typologyPartnerSelect', 'journeyPartnerSelect', 'typologyFormPartnerSelect'];
   selects.forEach(sid => {
     const sel = document.getElementById(sid);
     if (!sel) return;
@@ -516,7 +524,7 @@ function importExcel(event) {
       partner.isDemo = false;
 
       // Store for imported typology assessment
-      partner.importedTypology = [];
+      const importedTypology = [];
 
       // --- Parse Partner_Typology sheet ---
       const typologySheet = workbook.Sheets['Partner_Typology'];
@@ -528,14 +536,23 @@ function importExcel(event) {
           const typeName = String(row[0]).trim();
           const fitScore = parseInt(row[3]);
           if (!typeName || isNaN(fitScore)) return;
-          partner.importedTypology.push({
-            type: typeName,
+          importedTypology.push({
+            typeName,
             fitScore: Math.max(0, Math.min(4, fitScore)),
             evidence: row[4] ? String(row[4]).trim() : '',
             recommendedEngagement: row[6] ? String(row[6]).trim() : ''
           });
         });
       }
+
+      // Map imported typology into the standard typologyAssessment array
+      partner.typologyAssessment = getEmptyTypologyAssessment();
+      importedTypology.forEach(imp => {
+        const idx = PARTNER_TYPES.findIndex(pt => pt.name.toLowerCase() === imp.typeName.toLowerCase());
+        if (idx >= 0) {
+          partner.typologyAssessment[idx] = imp;
+        }
+      });
 
       // --- Parse Partner_Profile sheet ---
       const profileSheet = workbook.Sheets['Partner_Profile'];
@@ -629,6 +646,73 @@ function importExcel(event) {
   };
   reader.readAsArrayBuffer(file);
   event.target.value = '';
+}
+
+// ---- Typology Form ----
+function getEmptyTypologyAssessment() {
+  return PARTNER_TYPES.map(pt => ({
+    typeName: pt.name,
+    fitScore: 0,
+    evidence: '',
+    recommendedEngagement: ''
+  }));
+}
+
+function loadTypologyForm(id) {
+  const container = document.getElementById('typologyFormContainer');
+  if (!id) {
+    container.innerHTML = '<p class="text-muted">Select a partner to assess typology fit</p>';
+    return;
+  }
+  const p = partners.find(x => x.id === id);
+  if (!p) return;
+  if (!p.typologyAssessment || p.typologyAssessment.length !== PARTNER_TYPES.length) {
+    p.typologyAssessment = getEmptyTypologyAssessment();
+  }
+  renderTypologyForm(p);
+}
+
+function renderTypologyForm(p) {
+  const container = document.getElementById('typologyFormContainer');
+  let html = '';
+  PARTNER_TYPES.forEach((pt, idx) => {
+    const ta = p.typologyAssessment[idx] || { fitScore: 0, evidence: '', recommendedEngagement: '' };
+    html += `<div class="card" style="margin-bottom:12px">
+      <div class="card-header"><h3>${pt.name}</h3></div>
+      <div class="card-body">
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:12px">${pt.description}</p>
+        <div style="display:grid;grid-template-columns:120px 1fr;gap:10px;align-items:start">
+          <div>
+            <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-light)">Fit Score (0-4)</label>
+            <select id="tf-${pt.id}-score" onchange="saveTypologyField('${p.id}', ${idx}, 'fitScore', parseInt(this.value))" style="display:block;margin-top:4px;width:100%">
+              ${[0,1,2,3,4].map(v => `<option value="${v}" ${ta.fitScore === v ? 'selected' : ''}>${v}</option>`).join('')}
+            </select>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <div>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-light)">Evidence</label>
+              <textarea id="tf-${pt.id}-ev" rows="3" style="display:block;margin-top:4px;width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit;resize:vertical" placeholder="Notes explaining the fit score" onchange="saveTypologyField('${p.id}', ${idx}, 'evidence', this.value)">${ta.evidence || ''}</textarea>
+            </div>
+            <div>
+              <label style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--text-light)">Recommended Engagement</label>
+              <textarea id="tf-${pt.id}-eng" rows="3" style="display:block;margin-top:4px;width:100%;padding:6px 8px;border:1px solid var(--border);border-radius:4px;font-size:12px;font-family:inherit;resize:vertical" placeholder="How should we engage this partner?" onchange="saveTypologyField('${p.id}', ${idx}, 'recommendedEngagement', this.value)">${ta.recommendedEngagement || ''}</textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+function saveTypologyField(partnerId, typeIdx, field, value) {
+  const p = partners.find(x => x.id === partnerId);
+  if (!p) return;
+  if (!p.typologyAssessment) p.typologyAssessment = getEmptyTypologyAssessment();
+  if (!p.typologyAssessment[typeIdx]) p.typologyAssessment[typeIdx] = { fitScore: 0, evidence: '', recommendedEngagement: '' };
+  p.typologyAssessment[typeIdx][field] = value;
+  p.updatedAt = new Date().toISOString();
+  debouncedSavePartners();
 }
 
 function confirmResetAll() {
@@ -995,15 +1079,16 @@ function updateTypology() {
     return { pt, assigned, supporting, avgPct, threshold };
   });
 
-  // Show imported typology assessment if available
-  let importHtml = '';
-  if (p.importedTypology && p.importedTypology.length > 0) {
-    importHtml = '<div class="card" style="margin-bottom:20px"><div class="card-header"><h3>Imported Excel Typology Assessment</h3></div><div class="card-body"><div class="table-responsive"><table class="section-scores-table"><thead><tr><th>Partner Type</th><th>Fit Score (0-4)</th><th>Evidence</th><th>Recommended Engagement</th></tr></thead><tbody>';
-    p.importedTypology.forEach(t => {
+  // Show typology assessment if entered via Typology Form or imported
+  let taHtml = '';
+  if (p.typologyAssessment && p.typologyAssessment.some(t => t.fitScore > 0)) {
+    taHtml = '<div class="card" style="margin-bottom:20px"><div class="card-header"><h3>Partner Typology Assessment</h3></div><div class="card-body"><div class="table-responsive"><table class="section-scores-table"><thead><tr><th>Partner Type</th><th>Fit Score (0-4)</th><th>Evidence</th><th>Recommended Engagement</th></tr></thead><tbody>';
+    p.typologyAssessment.forEach(t => {
+      if (t.fitScore <= 0 && !t.evidence && !t.recommendedEngagement) return;
       const pctVal = Math.round((t.fitScore / 4) * 100);
-      importHtml += `<tr><td><strong>${t.type}</strong></td><td style="color:${getColorForPercent(pctVal)};font-weight:600">${t.fitScore}/4</td><td>${t.evidence || '-'}</td><td>${t.recommendedEngagement || '-'}</td></tr>`;
+      taHtml += `<tr><td><strong>${t.typeName}</strong></td><td style="color:${getColorForPercent(pctVal)};font-weight:600">${t.fitScore}/4</td><td>${t.evidence || '-'}</td><td>${t.recommendedEngagement || '-'}</td></tr>`;
     });
-    importHtml += '</tbody></table></div></div></div>';
+    taHtml += '</tbody></table></div></div></div>';
   }
 
   let html = '<div class="typology-grid">';
@@ -1019,7 +1104,7 @@ function updateTypology() {
     </div>`;
   });
   html += '</div>';
-  document.getElementById('typologyResults').innerHTML = importHtml + html;
+  document.getElementById('typologyResults').innerHTML = taHtml + html;
 }
 
 // ---- Journey ----

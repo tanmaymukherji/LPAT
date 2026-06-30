@@ -32,6 +32,9 @@ window.addEventListener('error', function(e) {
       <button class="nav-btn active" data-tab="form" onclick="switchTab('form')">
         <span class="nav-icon">&#9998;</span> Partner Form
       </button>
+      <button class="nav-btn" data-tab="typology-form" onclick="switchTab('typology-form')">
+        <span class="nav-icon">&#128221;</span> Typology Form
+      </button>
       <button class="nav-btn" data-tab="score" onclick="switchTab('score')">
         <span class="nav-icon">&#128202;</span> Score View
       </button>
@@ -139,7 +142,24 @@ window.addEventListener('error', function(e) {
       </div>
     </section>
 
-    <!-- TAB 2: Score View -->
+    <!-- TAB 2: Typology Form -->
+    <section id="tab-typology-form" class="tab-content">
+      <div class="tab-header">
+        <h1>Partner Typology Assessment</h1>
+        <select id="typologyFormPartnerSelect" onchange="loadTypologyForm(this.value)">
+          <option value="">-- Select Partner --</option>
+        </select>
+      </div>
+      <div class="card">
+        <div class="card-header"><h3>Rate the partner against each typology</h3></div>
+        <div class="card-body">
+          <p style="font-size:13px;color:var(--text-light);margin-bottom:16px">Rate the partner's fit on a scale of 0 (no fit) to 4 (perfect fit) for each partner type, with evidence and recommended engagement approach.</p>
+          <div id="typologyFormContainer"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: Score View -->
     <section id="tab-score" class="tab-content">
       <div class="tab-header">
         <h1>Partner Score View</h1>
